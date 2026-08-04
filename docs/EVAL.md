@@ -12,6 +12,21 @@ eval - but a deliberately honest reading is that it proves *consistency*, not *g
 This doc is the roadmap from that starting point to an eval layer that matches how AI teams
 actually validate agents in production.
 
+## Status (implemented)
+
+Phases 1, 3, and 4 are built and shipping (run `governor evaluate`):
+
+- **Held-out / adversarial set** (`eval_set_heldout.py`): 20 cases whose labels never touched the
+  policy. Result today: recall **0.67**, precision **1.00**, **4 adversarial evasions the keyword
+  gate misses** - reported honestly, not hidden.
+- **LLM-as-judge on draft quality** (`judge.py`): a free deterministic `StubJudge` (default) plus
+  an opt-in real `LLMJudge`. It flags the manipulative/pressuring drafts - including the held-out
+  evasions the gate auto-sent - demonstrating the two layers are complementary.
+- **Regression gate in CI** (`tests/test_eval_heldout.py`): the primary set's invariant
+  (0 dangerous, recall >= 0.95) fails the build if it ever regresses.
+
+Phases 2 and 5 (adopt a named framework; calibration/observability) remain planned below.
+
 ## Why evaluation is the point of this project
 
 The Governor is an oversight layer for autonomous agents. Its value is only as trustworthy as the

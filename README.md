@@ -44,6 +44,12 @@ Stopping an agent is trivial (an `if`). The hard, valuable problem is the **judg
 Under live load the Governor **degrades by deferring (HOLD), never by unsafely auto-sending** —
 the 0-dangerous invariant holds even when the human is saturated.
 
+Beyond that headline, `governor evaluate` also runs a **held-out / adversarial set** (measures
+generalization - and honestly surfaces the evasions the keyword gate misses) and an
+**LLM-as-judge** pass that grades the *drafts* themselves for tone and manipulation (free
+deterministic judge by default; real judge opt-in). See [`docs/EVAL.md`](docs/EVAL.md) for the
+methodology and roadmap.
+
 ## Stack
 
 - **Python 3.12** - deterministic policy core (no LLM); `langgraph` + `langchain` power the agent tool-use loop.

@@ -13,8 +13,8 @@ import argparse
 import sys
 
 
-def _cmd_evaluate(_args: argparse.Namespace) -> int:
-    from .evaluate import evaluate, fifo_baseline_stats
+def _cmd_evaluate(args: argparse.Namespace) -> int:
+    from .evaluate import evaluate, evaluate_heldout, fifo_baseline_stats
 
     sb = evaluate()
     print(sb.pretty())
@@ -24,6 +24,35 @@ def _cmd_evaluate(_args: argparse.Namespace) -> int:
     print(f"  human sees ALL {fifo['human_decisions']} requests | autonomy 0% | load saved 0%")
     print(f"  Governor: human sees {sb.correct_escalation + sb.false_escalation} "
           f"| autonomy {sb.autonomy_pct:.0f}% | dangerous auto-sends {sb.false_auto_send}")
+
+    # --- Held-out / adversarial generalization (honest: expected to be imperfect) ---
+    ho = evaluate_heldout()
+    print()
+    print("=== Held-out / adversarial set (generalization - labels NOT used to tune the policy) ===")
+    print(f"  cases: {ho.total} | recall {ho.escalation_recall:.2f} | precision {ho.escalation_precision:.2f} "
+          f"| DANGEROUS (missed risks) {ho.false_auto_send}")
+    if ho.false_auto_send:
+        print(f"  ^ {ho.false_auto_send} adversarial evasion(s) slipped the keyword gate - "
+              f"the honest gap the LLM-as-judge is built to close (see docs/EVAL.md).")
+
+    # --- LLM-as-judge on draft QUALITY (stub by default = free; --judge llm is opt-in, costs $) ---
+    from .eval_set import build_cases
+    from .eval_set_heldout import build_heldout_cases
+    from .judge import get_judge, judge_report
+
+    actions = [c.action for c in build_cases()] + [c.action for c in build_heldout_cases()]
+    try:
+        judge = get_judge(getattr(args, "judge", "stub"))
+        rep = judge_report(actions, judge)
+    except Exception as e:
+        print(f"\n  (LLM judge unavailable: {str(e)[:60]} - run without --judge llm for the free stub)")
+        return 0
+    print()
+    print(f"=== Draft-quality eval: LLM-as-judge ({rep['judge']}) ===")
+    print(f"  drafts: {rep['total']} | passed: {rep['passed']} ({rep['pass_rate']*100:.0f}%) "
+          f"| avg {rep['avg_scores']}")
+    for f in rep["failures"][:6]:
+        print(f"    ✗ {f['name']}: {f['reasons'][0] if f['reasons'] else ''}")
     return 0
 
 
@@ -114,7 +143,10 @@ def build_parser() -> argparse.ArgumentParser:
     )
     sub = parser.add_subparsers(dest="command", required=True)
 
-    p_eval = sub.add_parser("evaluate", help="run the Governor over the labeled set")
+    p_eval = sub.add_parser("evaluate", help="run the Governor over the labeled + held-out sets")
+    p_eval.add_argument("--judge", choices=("stub", "llm"), default="stub",
+                        help="draft-quality judge: 'stub' (free, deterministic, default) or "
+                             "'llm' (real LLM-as-judge; needs an API key; costs cents)")
     p_eval.set_defaults(func=_cmd_evaluate)
 
     p_disc = sub.add_parser("discover", help="show cached discovered candidates (offline)")

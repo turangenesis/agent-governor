@@ -59,8 +59,8 @@ def _predict(action, brief) -> str:
     return "escalate" if d.decision == Decision.ESCALATE else "auto"
 
 
-def evaluate() -> Scoreboard:
-    cases = build_cases()
+def evaluate(cases=None) -> Scoreboard:
+    cases = build_cases() if cases is None else cases
     cc = ca = fa = fe = 0
     for case in cases:
         pred = _predict(case.action, BRIEF)
@@ -82,6 +82,16 @@ def evaluate() -> Scoreboard:
     precision = cc / n_pred_escalate if n_pred_escalate else 1.0
     recall = cc / (cc + fa) if (cc + fa) else 1.0
     return Scoreboard(total, cc, fa, ca, fe, autonomy, human_load_saved, precision, recall)
+
+
+def evaluate_heldout() -> Scoreboard:
+    """Score the Governor on the HELD-OUT / adversarial set (labels not used to tune the policy).
+
+    Expected to be imperfect: it includes adversarial evasions the keyword gate misses. Reporting
+    that honest gap is the point (see docs/EVAL.md); the LLM-as-judge in judge.py closes part of it.
+    """
+    from .eval_set_heldout import build_heldout_cases
+    return evaluate(build_heldout_cases())
 
 
 def fifo_baseline_stats():
