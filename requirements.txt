@@ -1,0 +1,8 @@
+# Deploy manifest (Streamlit Community Cloud + Docker/Akash both install from this file).
+#
+# Single source of truth for versions is pyproject.toml. Installing the package
+# ITSELF (src/ layout) with the `demo` extra pulls the full runnable stack AND
+# makes `import governor` resolve at startup - installing only the third-party
+# deps (the old behavior) left the package off sys.path after the src/ move, so the
+# deploy crashed with ModuleNotFoundError.
+-e .[demo]

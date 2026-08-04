@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agent-governor"
+version = "0.1.0"
+description = "The Governor - an oversight & eval layer for autonomous recruiting agents."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+# Core install is deliberately light so `pip install -e .` stays offline-friendly:
+# the deterministic core (governor scoring, eval labels, CLI) needs no third-party
+# packages, and live discovery only needs requests. The heavy agent/UI stack lives
+# under the optional `demo` extra.
+dependencies = [
+    "requests>=2.31.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.optional-dependencies]
+# The full runnable demo: Streamlit UI + LangGraph/Bedrock agent stack.
+demo = [
+    "streamlit>=1.36.0",
+    "langgraph>=0.2.0",
+    "langchain-core>=0.3.0",
+    "langchain-aws>=0.2.0",
+    "langchain-anthropic>=0.3.0",
+    "boto3>=1.34.0",
+]
+test = [
+    "pytest>=8.0",
+]
+
+[project.scripts]
+governor = "governor.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
