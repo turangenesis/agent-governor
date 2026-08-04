@@ -155,6 +155,15 @@
     <div class="banner" id="mode">Showing the cached run - no key, no network.</div>
   </div>
 
+  <div class="panel">
+    <h2>Evaluation depth</h2>
+    <p class="sub">Not just "recall 1.00": the judgment is measured on a labeled set, probed on a
+      held-out adversarial set (generalization), and the drafts are graded by an LLM-as-judge -
+      see <a href="https://github.com/turangenesis/agent-governor/blob/main/docs/EVAL.md">docs/EVAL.md</a>.</p>
+    <div class="metrics" id="evalmetrics"></div>
+    <div class="hint" id="evalcaught"></div>
+  </div>
+
   <footer>Governor = deterministic Python (ported to JS) · recorded offline demo, synthetic candidates ·
     <a href="https://github.com/turangenesis/agent-governor">source</a></footer>
 </div>
@@ -322,6 +331,20 @@ async function playLoop(data){
 // ---------- controls ----------
 function setPauseLabel(){document.getElementById("pause").textContent=PAUSED?"▶ Resume":"⏸ Pause";}
 let CACHE=null,MODE="flow";
+function renderEval(e){
+  if(!e)return;
+  const g=document.getElementById("evalmetrics");
+  if(g)g.innerHTML=
+    `<div class="metric good"><b>${e.primary.recall.toFixed(2)}</b><span>recall · labeled</span></div>`+
+    `<div class="metric good"><b>${e.primary.dangerous}</b><span>dangerous · labeled</span></div>`+
+    `<div class="metric"><b>${e.heldout.recall.toFixed(2)}</b><span>recall · held-out</span></div>`+
+    `<div class="metric"><b>${e.heldout.dangerous}</b><span>gate missed · held-out</span></div>`+
+    `<div class="metric"><b>${Math.round(e.judge.pass_rate*100)}%</b><span>drafts pass judge</span></div>`;
+  const c=document.getElementById("evalcaught");
+  if(c&&e.judge.caught_evasions&&e.judge.caught_evasions.length)
+    c.innerHTML="<b>LLM-as-judge caught what the keyword gate missed:</b><br>"+
+      e.judge.caught_evasions.map(x=>"• "+esc(x.name)+" - "+esc(x.reason)).join("<br>");
+}
 async function loadCache(){try{CACHE=await(await fetch("./demo_cache.json")).json();}catch(e){status("could not load cache: "+e.message);}}
 function runCached(){if(!CACHE)return;
   document.getElementById("mode").textContent=MODE==="loop"?"Cached autonomous loop — no key, no network.":"Cached run — no key, no network.";
@@ -337,7 +360,7 @@ document.querySelectorAll(".speed button").forEach(btn=>btn.onclick=()=>{
   SPEED=+btn.dataset.sp;document.querySelectorAll(".speed button").forEach(x=>x.classList.remove("on"));btn.classList.add("on");});
 // boot: show the 5 agents idle, load cache, don't auto-run (let the human press ▶)
 metrics();
-loadCache().then(()=>{if(CACHE)boardCards(CACHE.agents);});
+loadCache().then(()=>{if(CACHE){boardCards(CACHE.agents);renderEval(CACHE.eval);}});
 </script>
 </body>
 </html>

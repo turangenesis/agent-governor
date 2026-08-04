@@ -14,7 +14,7 @@ actually validate agents in production.
 
 ## Status (implemented)
 
-Phases 1, 3, and 4 are built and shipping (run `governor evaluate`):
+Phases 1-4 are built and shipping (run `governor evaluate`):
 
 - **Held-out / adversarial set** (`eval_set_heldout.py`): 20 cases whose labels never touched the
   policy. Result today: recall **0.67**, precision **1.00**, **4 adversarial evasions the keyword
@@ -24,8 +24,14 @@ Phases 1, 3, and 4 are built and shipping (run `governor evaluate`):
   evasions the gate auto-sent - demonstrating the two layers are complementary.
 - **Regression gate in CI** (`tests/test_eval_heldout.py`): the primary set's invariant
   (0 dangerous, recall >= 0.95) fails the build if it ever regresses.
+- **Named eval framework - DeepEval** (`tests/test_deepeval_eval.py`, optional `[eval]` extra):
+  the Governor's decisions and the draft-quality judge run as DeepEval `BaseMetric`s over
+  `LLMTestCase`s and are asserted with `assert_test`, pytest-native and CI-gated. Offline and free
+  (DeepEval is the harness; its own LLM metrics are not called).
+- **Web view** (`docs/index.html`): the labeled + held-out scoreboards and the judge result -
+  including the evasions the gate missed but the judge caught - render on the live demo page.
 
-Phases 2 and 5 (adopt a named framework; calibration/observability) remain planned below.
+Phase 5 (calibration/observability) remains planned below.
 
 ## Why evaluation is the point of this project
 

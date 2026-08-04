@@ -52,6 +52,25 @@ def _text_of(action) -> str:
     return f"{action.subject}\n{action.body}"
 
 
+def manipulation_in_text(text: str):
+    """Return the offending phrase/family if the text shows manipulation/pressure, else None.
+
+    Text-only (needs no candidate), so it can back a stateless framework metric (e.g. a DeepEval
+    BaseMetric that DeepEval re-instantiates with no args). Same signals the StubJudge uses."""
+    low = text.lower()
+    for p in _PRESSURE:
+        if p in low:
+            return f"pressure/urgency: {p}"
+    for p in _SENSITIVE:
+        if p in low:
+            return f"sensitive leverage: {p}"
+    if re.search(r"\b[A-Z]{3,}\b(?:[^a-z]*\b[A-Z]{3,}\b)", text):
+        return "shouty all-caps"
+    if text.count("!") >= 2:
+        return "excessive exclamation"
+    return None
+
+
 class StubJudge:
     """Deterministic, free rubric grader. Broader than the gate on manipulation phrasing."""
 

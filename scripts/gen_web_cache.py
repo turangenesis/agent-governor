@@ -54,6 +54,37 @@ def _loop_traces() -> list[dict]:
     return out
 
 
+def _eval_summary() -> dict:
+    """Eval depth for the web demo: labeled + held-out scoreboards, and the LLM-as-judge result -
+    including the adversarial evasions the keyword gate auto-sent but the judge flagged. Offline."""
+    from governor.eval_set import build_cases
+    from governor.eval_set_heldout import build_heldout_cases
+    from governor.evaluate import evaluate, evaluate_heldout
+    from governor.judge import StubJudge, judge_report
+    from governor.models import Decision
+
+    pri, ho = evaluate(), evaluate_heldout()
+    judge = StubJudge()
+    caught = []   # held-out drafts the gate AUTO-SENT but the judge catches = the value-add
+    for c in build_heldout_cases():
+        gate = govern(c.action, BRIEF, human_queue_depth=0)
+        v = judge.judge(c.action)
+        if gate.decision == Decision.AUTO_SEND and not v.passed:
+            caught.append({"name": c.action.candidate.name,
+                           "reason": v.reasons[0] if v.reasons else "flagged"})
+    actions = [x.action for x in build_cases()] + [x.action for x in build_heldout_cases()]
+    rep = judge_report(actions, judge)
+    return {
+        "primary": {"recall": round(pri.escalation_recall, 2),
+                    "precision": round(pri.escalation_precision, 2),
+                    "dangerous": pri.false_auto_send, "autonomy": round(pri.autonomy_pct)},
+        "heldout": {"cases": ho.total, "recall": round(ho.escalation_recall, 2),
+                    "precision": round(ho.escalation_precision, 2), "dangerous": ho.false_auto_send},
+        "judge": {"total": rep["total"], "passed": rep["passed"], "pass_rate": rep["pass_rate"],
+                  "avg_scores": rep["avg_scores"], "caught_evasions": caught},
+    }
+
+
 def build() -> dict:
     agents = []
     for terr in TERRITORIES:
@@ -79,6 +110,7 @@ def build() -> dict:
                   "hiring_company": BRIEF.hiring_company, "competitors": list(BRIEF.competitors)},
         "agents": agents,
         "loop": _loop_traces(),
+        "eval": _eval_summary(),
         "scoreboard": {
             "recall": round(sb.escalation_recall, 2),
             "precision": round(sb.escalation_precision, 2),
