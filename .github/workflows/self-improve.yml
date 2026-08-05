@@ -1,0 +1,42 @@
+name: Self-improve (eval-gated policy proposal)
+
+# Manually dispatched "self-healing" run: the Governor analyzes its own failures, proposes a
+# policy change, and PROVES it against the eval gate. On MERGE it opens a PR whose body carries
+# the eval proof - a human/CI still reviews. Uses the deterministic proposer only (free, no key;
+# an LLM proposer is intentionally NOT run in CI to avoid recurring cost/flakiness).
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  propose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e ".[test,eval]"
+
+      - name: Run the eval-gated self-improvement loop
+        run: governor improve
+
+      - name: Open a PR if the change passes the eval gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          BRANCH="governor/self-improve-${{ github.run_id }}"
+          git config user.name "governor-self-improve[bot]"
+          git config user.email "governor-self-improve@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          governor improve --emit-policy proposed_policy.json
+          git add proposed_policy.json
+          git commit -m "self-improve: eval-gated policy proposal"
+          git push -u origin "$BRANCH"
+          governor improve --pr-body > /tmp/pr_body.md
+          gh pr create --title "Self-improve: eval-gated policy proposal" \
+                       --body-file /tmp/pr_body.md --base main --head "$BRANCH"

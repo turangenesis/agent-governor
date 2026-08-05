@@ -56,10 +56,21 @@ def _cmd_evaluate(args: argparse.Namespace) -> int:
     return 0
 
 
-def _cmd_improve(_args: argparse.Namespace) -> int:
-    from .improve import run_improvement
+def _cmd_improve(args: argparse.Namespace) -> int:
+    from .improve import pr_body, run_improvement
 
     out = run_improvement()
+
+    if getattr(args, "pr_body", False):          # emit a PR description (pipe to gh pr create)
+        print(pr_body(out))
+        return 0
+    if getattr(args, "emit_policy", None):       # write the proposed policy artifact
+        import json
+        with open(args.emit_policy, "w") as f:
+            json.dump(out["proposal"].to_dict(), f, indent=2)
+        print(f"wrote proposed policy -> {args.emit_policy}")
+        return 0
+
     a, p, r = out["analysis"], out["proposal"], out["report"]
     print("=== Governor self-improvement loop (eval-gated policy change) ===\n")
     print(f"1) ANALYZE - baseline gate missed {len(a['missed'])} train case(s) (pressure-family evasions)")
@@ -179,6 +190,10 @@ def build_parser() -> argparse.ArgumentParser:
     p_disc.set_defaults(func=_cmd_discover)
 
     p_imp = sub.add_parser("improve", help="run the eval-gated self-improvement loop on the policy")
+    p_imp.add_argument("--pr-body", action="store_true",
+                       help="print a PR description carrying the eval proof (pipe to gh pr create)")
+    p_imp.add_argument("--emit-policy", metavar="PATH",
+                       help="write the proposed policy JSON to PATH (the change artifact)")
     p_imp.set_defaults(func=_cmd_improve)
 
     p_run = sub.add_parser("run", help="run the sourcing agents through the Governor")

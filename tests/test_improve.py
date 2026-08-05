@@ -49,3 +49,12 @@ def test_merged_policy_keeps_labeled_zero_dangerous():
 
 def test_loop_is_deterministic():
     assert run_improvement()["report"] == run_improvement()["report"]
+
+
+def test_pr_body_and_branch_carry_the_proof():
+    from governor.improve import branch_name, pr_body
+    body = pr_body()
+    assert "Gate decision: MERGE" in body
+    assert "validation" in body.lower() and "cross-family" in body.lower()
+    assert "dangerous=0" in body
+    assert branch_name().startswith("governor/self-improve")
