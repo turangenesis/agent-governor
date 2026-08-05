@@ -13,6 +13,22 @@ network. Toggle **Flow** vs **🔁 Loop** to watch the agents either follow a fi
 **decide their own next step**. The full system (real GitHub sourcing + optional live Claude
 drafting) runs from the source in this repo.
 
+## Quickstart
+
+No install - open the **[live demo](https://turangenesis.github.io/agent-governor/)**. Or run it locally:
+
+```bash
+git clone https://github.com/turangenesis/agent-governor && cd agent-governor
+python3.12 -m venv .venv && ./.venv/bin/pip install -e ".[demo]"
+
+./.venv/bin/governor evaluate                                  # measured correctness (0 dangerous / recall 1.00)
+./.venv/bin/governor run --source agents --mode loop --replay  # 5 agents decide, fully offline
+./.venv/bin/streamlit run app.py                               # the live dashboard
+```
+
+Everything above runs with **no key and no network**. (Consume the layer three ways: CLI `governor`,
+library `governor.core`, or service `governor.api` - see [Reusable layer](#reusable-layer-bring-your-own-agent).)
+
 ## Architecture
 
 ```mermaid
@@ -103,7 +119,7 @@ cp .env.example .env                    # optional: fill in AWS + Zero for live 
 
 # deterministic core via the `governor` CLI (no creds, no network):
 ./.venv/bin/governor evaluate           # the eval scoreboard (FIFO vs Governor)
-./.venv/bin/governor discover           # replay cached discovered candidates
+./.venv/bin/governor discover           # replay a PRIOR live GitHub discovery (run discovery first)
 
 # autonomous LLM tool-use loop — each agent decides its own next action:
 ./.venv/bin/governor run --source agents --mode loop           # live (needs a key)

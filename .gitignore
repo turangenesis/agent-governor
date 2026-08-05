@@ -29,6 +29,9 @@ discovered_*.json
 # Claude Code local settings
 .claude/
 
+# DeepEval runtime cache (regenerated on each eval run)
+.deepeval/
+
 # PRIVATE working docs — hiring strategy + personal email. Keep local, NEVER push.
 CLAUDE.md
 docs/HANDOFF.md
