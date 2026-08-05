@@ -56,6 +56,30 @@ def _cmd_evaluate(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_improve(_args: argparse.Namespace) -> int:
+    from .improve import run_improvement
+
+    out = run_improvement()
+    a, p, r = out["analysis"], out["proposal"], out["report"]
+    print("=== Governor self-improvement loop (eval-gated policy change) ===\n")
+    print(f"1) ANALYZE - baseline gate missed {len(a['missed'])} train case(s): "
+          f"{a['categories']['pressure']} pressure, {a['categories']['sensitive']} sensitive")
+    print(f"2) PROPOSE - {p.note}")
+    print(f"     +{len(p.extra_pushy_terms)} pushy terms, +{len(p.extra_sensitive_terms)} sensitive terms")
+    print("3) PROVE (train proposes, VALIDATION is the gate):")
+    print(f"     train recall : {r['train_recall']['before']} -> {r['train_recall']['after']}")
+    print(f"     val   recall : {r['val_recall']['before']} -> {r['val_recall']['after']}  (unseen phrasings)")
+    print(f"     labeled      : dangerous={r['labeled']['dangerous']} recall={r['labeled']['recall']} "
+          f"precision {r['labeled']['precision_before']} -> {r['labeled']['precision_after']}")
+    print("     gate checks:")
+    for k, v in r["checks"].items():
+        print(f"       [{'x' if v else ' '}] {k}")
+    print(f"\n4) DECISION: {r['decision']}"
+          + ("  (change is proven to generalize -> may merge)" if r["decision"] == "MERGE"
+             else "  (not proven -> blocked)"))
+    return 0
+
+
 def _cmd_discover(_args: argparse.Namespace) -> int:
     from .discover import load
 
@@ -151,6 +175,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_disc = sub.add_parser("discover", help="show cached discovered candidates (offline)")
     p_disc.set_defaults(func=_cmd_discover)
+
+    p_imp = sub.add_parser("improve", help="run the eval-gated self-improvement loop on the policy")
+    p_imp.set_defaults(func=_cmd_improve)
 
     p_run = sub.add_parser("run", help="run the sourcing agents through the Governor")
     p_run.add_argument("--source", choices=("labeled", "discovered", "agents"),

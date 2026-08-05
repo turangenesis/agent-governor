@@ -33,6 +33,13 @@ Phases 1-4 are built and shipping (run `governor evaluate`):
 
 Phase 5 (calibration/observability) remains planned below.
 
+**Self-improvement loop** (`governor improve`, `improve.py`): the eval is now a *gate for policy
+change*. It reads the failures, proposes widening the risk-term families, and merges the change
+**only if a held-out VALIDATION split improves** (0.0 -> 1.0 recall on unseen phrasings) while the
+labeled invariant holds (0 dangerous, precision preserved). Train and validation are separate
+splits, so a merge proves generalization, not memorization; an overfit proposal is rejected. The
+Governor stays deterministic - a policy may only widen matched families, never scoring or labels.
+
 ## Why evaluation is the point of this project
 
 The Governor is an oversight layer for autonomous agents. Its value is only as trustworthy as the

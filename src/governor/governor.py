@@ -18,6 +18,7 @@ from __future__ import annotations
 import re
 
 from .models import Candidate, HiringBrief, ProposedAction, Decision, GovernorDecision
+from .policy import BASELINE, Policy
 
 
 def _norm(s: str) -> str:
@@ -56,11 +57,17 @@ SENSITIVE_TERMS = ("salary", "compensation", "visa", "sponsorship", "fired", "la
 PUSHY_TERMS = ("act now", "urgent", "last chance", "limited time", "asap")
 
 
-def score_signals(action: ProposedAction, brief: HiringBrief) -> dict[str, float]:
-    """Return the named risk signals that fired, mapped to their weight. Pure function."""
+def score_signals(action: ProposedAction, brief: HiringBrief,
+                  policy: Policy = BASELINE) -> dict[str, float]:
+    """Return the named risk signals that fired, mapped to their weight. Pure function.
+
+    `policy` only widens the pushy/sensitive term families (baseline + policy extras); with the
+    default BASELINE this is byte-identical to the original behavior."""
     c = action.candidate
     body = (action.body or "").lower()
     signals: dict[str, float] = {}
+    pushy_terms = PUSHY_TERMS + tuple(policy.extra_pushy_terms)
+    sensitive_terms = SENSITIVE_TERMS + tuple(policy.extra_sensitive_terms)
 
     if _is_competitor(c.current_company, brief.competitors):
         signals["competitor_poach"] = W["competitor_poach"]
@@ -74,9 +81,9 @@ def score_signals(action: ProposedAction, brief: HiringBrief) -> dict[str, float
         signals["agent_concern"] = min(0.4, W["agent_concern"] * len(action.concerns))
     if c.match_confidence < 0.6:
         signals["poor_match"] = W["poor_match"] * (0.6 - c.match_confidence) / 0.6
-    if any(t in body for t in SENSITIVE_TERMS):
+    if any(t in body for t in sensitive_terms):
         signals["sensitive_content"] = W["sensitive_content"]
-    if any(t in body for t in PUSHY_TERMS):
+    if any(t in body for t in pushy_terms):
         signals["pushy_content"] = W["pushy_content"]
     if len(action.body or "") < 60:
         signals["too_short"] = W["too_short"]
@@ -84,15 +91,20 @@ def score_signals(action: ProposedAction, brief: HiringBrief) -> dict[str, float
     return signals
 
 
-def risk_of(action: ProposedAction, brief: HiringBrief) -> tuple[float, dict[str, float]]:
-    signals = score_signals(action, brief)
+def risk_of(action: ProposedAction, brief: HiringBrief,
+            policy: Policy = BASELINE) -> tuple[float, dict[str, float]]:
+    signals = score_signals(action, brief, policy)
     score = min(1.0, sum(signals.values()))
     return score, signals
 
 
-def govern(action: ProposedAction, brief: HiringBrief, human_queue_depth: int = 0) -> GovernorDecision:
-    """The judgment call. GOVERNOR mode only (FIFO bypasses this and escalates everything)."""
-    score, signals = risk_of(action, brief)
+def govern(action: ProposedAction, brief: HiringBrief, human_queue_depth: int = 0,
+           policy: Policy = BASELINE) -> GovernorDecision:
+    """The judgment call. GOVERNOR mode only (FIFO bypasses this and escalates everything).
+
+    `policy` defaults to BASELINE (unchanged behavior); the self-improvement loop passes a widened
+    policy to evaluate a proposed change before it may merge."""
+    score, signals = risk_of(action, brief, policy)
     reasons = [f"{k} (+{v:.2f})" for k, v in sorted(signals.items(), key=lambda kv: -kv[1])]
 
     # Hard escalate: a genuinely risky action is never load-shed away.

@@ -53,17 +53,18 @@ class Scoreboard:
         return "\n".join(L)
 
 
-def _predict(action, brief) -> str:
+def _predict(action, brief, policy=None) -> str:
     """Pure policy eval: queue empty, so no load-shed HOLD. Map decision -> escalate/auto."""
-    d = govern(action, brief, human_queue_depth=0)
+    from .policy import BASELINE
+    d = govern(action, brief, human_queue_depth=0, policy=policy or BASELINE)
     return "escalate" if d.decision == Decision.ESCALATE else "auto"
 
 
-def evaluate(cases=None) -> Scoreboard:
+def evaluate(cases=None, policy=None) -> Scoreboard:
     cases = build_cases() if cases is None else cases
     cc = ca = fa = fe = 0
     for case in cases:
-        pred = _predict(case.action, BRIEF)
+        pred = _predict(case.action, BRIEF, policy)
         gt = case.ground_truth
         if gt == "escalate" and pred == "escalate":
             cc += 1

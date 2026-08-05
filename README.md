@@ -116,6 +116,22 @@ Traces surface step by step in the Streamlit app, in the [live web demo](https:/
 (toggle **🔁 Loop**), and at the CLI above — all replaying from `docs/demo_cache.json` with no
 credentials. A live key produces a fresh trace; the cached trace drives the offline demo.
 
+## Self-improvement (eval-gated policy loop)
+
+`governor improve` closes the loop: it reads the cases the Governor got wrong, proposes a minimal
+policy change (widen the risk-term families it missed), and lets that change merge **only if the
+evaluation suite proves it improves a held-out VALIDATION set without regressing the labeled
+invariant** (0 dangerous, recall >= 0.95). The proposer learns from one adversarial split and is
+graded on a *different* one, so a merged change is proven to **generalize, not memorize** - the same
+train/validation discipline used to evaluate models, applied to the policy itself.
+
+```bash
+./.venv/bin/governor improve   # analyze -> propose -> prove -> MERGE / REJECT  (offline, no key)
+```
+
+The Governor stays deterministic; a policy may only widen which manipulation families it matches -
+never scoring, thresholds, or the eval labels. See [`docs/EVAL.md`](docs/EVAL.md).
+
 ## Layout
 
 The importable package lives under `src/governor/` (installed via `pip install -e .`);
