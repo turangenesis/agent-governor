@@ -1,0 +1,18 @@
+{
+  "extra_pushy_terms": [
+    "spots",
+    "filling",
+    "only",
+    "spots are",
+    "are filling",
+    "closing soon",
+    "closing",
+    "reply today",
+    "reply",
+    "today",
+    "soon",
+    "and we're"
+  ],
+  "extra_sensitive_terms": [],
+  "note": "data-driven: 12 terms mined from the missed drafts"
+}
