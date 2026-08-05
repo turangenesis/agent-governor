@@ -203,14 +203,21 @@ Stated plainly, because a judgment layer you can't see the limits of isn't trust
   irresponsibility the Governor exists to prevent.
 - **The hosted demo is offline + synthetic.** Real GitHub sourcing and live Claude drafting exist
   in the code, but the public page replays a recorded run over fictional candidates.
-- **Self-improvement is bounded and partial.** A proposal may only *widen risk-term families*
-  (never scoring, thresholds, or the eval labels), and it generalizes only *partially* within a
-  family and **not** across families - a real, measured gain, not a magic fix.
+- **Self-improvement is bounded, partial, and manually run.** `governor improve` is **invoked by
+  hand over a labeled eval set** - the system does **not** monitor live production, discover
+  failures automatically, or improve on its own. A proposal may only *widen risk-term families*
+  (never scoring, thresholds, or labels), and it generalizes only *partially* within a family and
+  **not** across families - a real, measured gain, not autonomous production self-learning.
 - **This is a demo, not a production system** - small datasets, no live traffic.
 
 **The core tradeoff is deliberate:** the Governor errs toward escalating (some false escalations =
 wasted human glances) to keep **dangerous auto-sends at 0**, and under load it *defers* (HOLD)
 rather than unsafely auto-send. A wasted glance is far cheaper than a bad send.
+
+**Where this would go (not built):** production monitoring of real outcomes → automatic failure
+discovery + human labeling → candidate policy → held-out eval → human approval → canary deploy →
+monitor / rollback. This repo stops at the **eval-gated proposal** step, run manually over labeled
+data - the loop is proven; the production autonomy around it is future work.
 
 ## Layout
 
