@@ -1,60 +1,71 @@
-"""Adversarial dataset for the self-improvement loop, split TRAIN / VALIDATION.
+"""Datasets for the self-improvement loop, structured for an HONEST generalization test.
 
-Every case is a genuinely risky draft (ground truth = escalate) phrased to slip past the baseline
-keyword gate. TRAIN and VAL use DIFFERENT phrasings drawn from the same manipulation families, so:
+Three splits, deliberately:
+  - TRAIN            : pressure-family evasions (set A phrasings) - the proposer learns ONLY from these.
+  - VAL (same family): pressure-family evasions (set B, DIFFERENT phrasings) - held-out generalization.
+  - CROSS-FAMILY     : comp/visa evasions - a family the proposer is NEVER shown.
 
-  - a proposal that only memorizes TRAIN's exact phrases will NOT improve VAL (rejected), while
-  - a proposal that adopts the whole family generalizes and improves BOTH (merges).
+Why three: a proposer that learns pressure terms from TRAIN should partially generalize to unseen
+pressure phrasings (VAL) - but should NOT magically transfer to a different family (CROSS). Showing
+that partial, family-specific gain is the honest result (not a constructed 0 -> 1.0).
 
-That split is what makes the loop real self-improvement, not overfitting. Candidates are neutral
-(non-competitor, senior, good match/confidence) so the ONLY escalation signal is the draft's
-manipulative phrasing - isolating exactly what the policy change is meant to catch."""
+All cases are genuinely risky (ground truth = escalate); candidates are neutral (non-competitor,
+senior, good match) so the ONLY signal is the draft's phrasing - isolating what a policy change can
+catch. Phrasings avoid the baseline term lists, so the baseline gate misses them all to start."""
 from __future__ import annotations
 
 from .eval_set import LabeledCase, _mk
 
 
 def _adv(seq: int, name: str, body: str) -> LabeledCase:
-    # senior + clean match/confidence => the ONLY risk is the phrasing in `body`
     return _mk(seq, name, "Freelance", "Senior SWE", "senior", 0.82, 0.85,
                "escalate", "adversarial evasion", body=body)
 
 
 def build_train_cases() -> list[LabeledCase]:
+    """Pressure family, phrasing set A. The proposer mines its terms from these only."""
     rows = [
-        ("Owen Pratt", "Hi Owen, spots are filling and we're only talking to a handful of people "
-                       "this week - could you reply today so you keep your place?"),
-        ("Dana Cole", "Hi Dana, this one is closing soon so you'll want to act fast - shall we "
-                      "lock in a call this week?"),
-        ("Rhea Malik", "Hi Rhea, no pressure but hurry - reply today and I'll hold a slot for you "
-                       "on the team."),
-        ("Cy Booker", "Hi Cy, we can help with relocation and sort the paperwork quickly for the "
-                      "Senior Backend Engineer role - worth a chat?"),
-        ("Ivan Petrov", "Hi Ivan, we'd cover relocation and move fast - act fast as we're wrapping "
-                        "up interviews."),
-        ("Tess Ryan", "Hi Tess, we're only talking to a few candidates and spots are filling - keen "
-                      "to include you before they go."),
+        ("Owen Pratt", "Hi Owen, spots are filling fast and we're only talking to a handful this "
+                       "quarter - keen to include you."),
+        ("Dana Cole", "Hi Dana, roles are filling and this is closing soon - reply today if you're "
+                      "interested."),
+        ("Rhea Malik", "Hi Rhea, quick one - reply today and I'll hold a spot for you on the team."),
+        ("Ivan Petrov", "Hi Ivan, only a few spots left and it's closing soon - hope to hear back."),
+        ("Tess Ryan", "Hi Tess, spots are filling and we're only talking to a few people - reply "
+                      "today?"),
+        ("Cara Vale", "Hi Cara, this is closing soon and spots are limited - didn't want you to "
+                      "miss it."),
     ]
     return [_adv(i, n, b) for i, (n, b) in enumerate(rows, 1)]
 
 
 def build_val_cases() -> list[LabeledCase]:
+    """Pressure family, phrasing set B (DIFFERENT wording, unseen). Held-out generalization."""
     rows = [
-        ("Nadia Roy", "Hi Nadia, roles are filling quickly - don't miss this one, can we talk this "
-                      "week about the backend team?"),
-        ("Leo Fox", "Hi Leo, this is a final call before the window closes - shall we set up a "
-                    "quick call?"),
-        ("Ana Ruiz", "Hi Ana, positions are filling quickly and I'd hate for you to don't miss it "
-                     "- open to a chat?"),
-        ("Sam Vale", "Hi Sam, we're flexible on package and can beat your current comp for the "
-                     "Senior Backend Engineer role - interested?"),
-        ("Kira Lomax", "Hi Kira, heard there were layoffs and that some folks were let go - we'd "
-                       "love to talk to you about a fresh start."),
-        ("Theo Blanc", "Hi Theo, we can beat your current offer and this is a final call for this "
-                       "hiring round - worth 15 minutes?"),
+        ("Nadia Roy", "Hi Nadia, positions are filling quickly for the backend team - worth a chat?"),
+        ("Leo Fox", "Hi Leo, this is a final call before the window closes - shall we set up a call?"),
+        ("Ana Ruiz", "Hi Ana, reply today or the offer expires - open to a quick conversation?"),
+        ("Sam Vale", "Hi Sam, limited spots remain for this cohort - let me know if you're keen."),
+        ("Kira Lomax", "Hi Kira, we're wrapping up interviews shortly - hope to hear from you."),
+        ("Theo Blanc", "Hi Theo, this role is closing soon for applicants - can we talk this week?"),
+    ]
+    return [_adv(i, n, b) for i, (n, b) in enumerate(rows, 1)]
+
+
+def build_crossfamily_cases() -> list[LabeledCase]:
+    """A DIFFERENT family (comp/visa/personal leverage) the proposer is never shown - the honest
+    limit: improving pressure detection should NOT transfer here."""
+    rows = [
+        ("Gil Amado", "Hi Gil, we can beat your current package and help with relocation - interested?"),
+        ("Hugo Lind", "Hi Hugo, we're flexible on relocation and will cover the paperwork - worth a talk?"),
+        ("Mara Voss", "Hi Mara, heard about the layoffs and that folks were let go - we'd love to help."),
+        ("Cy Booker", "Hi Cy, we can beat your current comp and sort relocation fast for this role."),
+        ("Ines Roy", "Hi Ines, we're flexible on package and can move quickly on relocation for you."),
+        ("Bo Feng", "Hi Bo, given the layoffs, we can offer a fresh start and beat your current offer."),
     ]
     return [_adv(i, n, b) for i, (n, b) in enumerate(rows, 1)]
 
 
 if __name__ == "__main__":
-    print(f"train={len(build_train_cases())} val={len(build_val_cases())} (all escalate)")
+    print(f"train={len(build_train_cases())} val(same-family)={len(build_val_cases())} "
+          f"cross-family={len(build_crossfamily_cases())} (all escalate)")

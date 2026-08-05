@@ -62,21 +62,23 @@ def _cmd_improve(_args: argparse.Namespace) -> int:
     out = run_improvement()
     a, p, r = out["analysis"], out["proposal"], out["report"]
     print("=== Governor self-improvement loop (eval-gated policy change) ===\n")
-    print(f"1) ANALYZE - baseline gate missed {len(a['missed'])} train case(s): "
-          f"{a['categories']['pressure']} pressure, {a['categories']['sensitive']} sensitive")
+    print(f"1) ANALYZE - baseline gate missed {len(a['missed'])} train case(s) (pressure-family evasions)")
     print(f"2) PROPOSE - {p.note}")
-    print(f"     +{len(p.extra_pushy_terms)} pushy terms, +{len(p.extra_sensitive_terms)} sensitive terms")
-    print("3) PROVE (train proposes, VALIDATION is the gate):")
-    print(f"     train recall : {r['train_recall']['before']} -> {r['train_recall']['after']}")
-    print(f"     val   recall : {r['val_recall']['before']} -> {r['val_recall']['after']}  (unseen phrasings)")
-    print(f"     labeled      : dangerous={r['labeled']['dangerous']} recall={r['labeled']['recall']} "
+    print(f"     mined terms: {list(p.extra_pushy_terms)}")
+    print("3) PROVE - proposer learns from TRAIN; gate = same-family VALIDATION (unseen phrasings):")
+    print(f"     train                : {r['train_recall']['before']} -> {r['train_recall']['after']}")
+    print(f"     val (same family)    : {r['val_same_family_recall']['before']} -> "
+          f"{r['val_same_family_recall']['after']}   (unseen phrasings - real, PARTIAL generalization)")
+    print(f"     cross-family (unseen): {r['cross_family_recall']['before']} -> "
+          f"{r['cross_family_recall']['after']}   (honest limit: transfer = {r['cross_family_transfer']})")
+    print(f"     labeled invariant    : dangerous={r['labeled']['dangerous']} recall={r['labeled']['recall']} "
           f"precision {r['labeled']['precision_before']} -> {r['labeled']['precision_after']}")
     print("     gate checks:")
     for k, v in r["checks"].items():
         print(f"       [{'x' if v else ' '}] {k}")
     print(f"\n4) DECISION: {r['decision']}"
-          + ("  (change is proven to generalize -> may merge)" if r["decision"] == "MERGE"
-             else "  (not proven -> blocked)"))
+          + ("  (partial same-family gain, invariant held -> may merge; does NOT transfer across families)"
+             if r["decision"] == "MERGE" else "  (not proven -> blocked)"))
     return 0
 
 

@@ -134,12 +134,13 @@ credentials. A live key produces a fresh trace; the cached trace drives the offl
 
 ## Self-improvement (eval-gated policy loop)
 
-`governor improve` closes the loop: it reads the cases the Governor got wrong, proposes a minimal
-policy change (widen the risk-term families it missed), and lets that change merge **only if the
-evaluation suite proves it improves a held-out VALIDATION set without regressing the labeled
-invariant** (0 dangerous, recall >= 0.95). The proposer learns from one adversarial split and is
-graded on a *different* one, so a merged change is proven to **generalize, not memorize** - the same
-train/validation discipline used to evaluate models, applied to the policy itself.
+`governor improve` closes the loop: it **mines terms from the drafts the Governor got wrong**
+(learned from the data, not a predefined list), proposes widening the gate, and lets the change
+merge **only if a held-out VALIDATION split of unseen phrasings improves, without regressing the
+labeled invariant** (0 dangerous, recall >= 0.95). It reports the *honest* picture - a **partial**
+same-family gain (recall 0.0 -> 0.67 on unseen phrasings) and **no transfer** to a family it was
+never shown - because real, measured self-improvement is partial and family-specific, not a magic
+100%. An overfit proposal (memorizing exact phrases) is rejected by the validation gate.
 
 ```bash
 ./.venv/bin/governor improve   # analyze -> propose -> prove -> MERGE / REJECT  (offline, no key)

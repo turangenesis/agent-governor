@@ -34,10 +34,12 @@ Phases 1-4 are built and shipping (run `governor evaluate`):
 Phase 5 (calibration/observability) remains planned below.
 
 **Self-improvement loop** (`governor improve`, `improve.py`): the eval is now a *gate for policy
-change*. It reads the failures, proposes widening the risk-term families, and merges the change
-**only if a held-out VALIDATION split improves** (0.0 -> 1.0 recall on unseen phrasings) while the
-labeled invariant holds (0 dangerous, precision preserved). Train and validation are separate
-splits, so a merge proves generalization, not memorization; an overfit proposal is rejected. The
+change*. A **data-driven proposer mines discriminative terms from the drafts the gate got wrong**
+(not a predefined list) and the change merges **only if a held-out same-family VALIDATION split of
+unseen phrasings improves** while the labeled invariant holds (0 dangerous, precision preserved).
+The honest result is deliberately partial: same-family recall **0.0 -> 0.67** on unseen phrasings,
+and **no transfer** to a family the proposer was never shown - because real self-improvement is
+partial and family-specific, not a magic 100%. An overfit (exact-phrase) proposal is rejected. The
 Governor stays deterministic - a policy may only widen matched families, never scoring or labels.
 
 ## Why evaluation is the point of this project
