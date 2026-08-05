@@ -108,6 +108,61 @@ def propose_overfit(train_cases, negatives=None) -> Policy:
     return Policy(extra_pushy_terms=terms, note="overfit: exact long TRAIN phrases only")
 
 
+_LLM_PROMPT = (
+    "You improve a deterministic safety gate for recruiting outreach. Below are email drafts the "
+    "gate WRONGLY let through - each should have been escalated to a human because it uses "
+    "manipulative PRESSURE (false urgency/scarcity) or SENSITIVE leverage (comp/visa/personal). "
+    "Propose short lowercase phrases (2-4 words) to add so the gate catches these AND similar "
+    "UNSEEN phrasings. Do NOT propose generic words that appear in normal polite emails (e.g. "
+    "'the', 'role', 'team', 'call'). Return ONLY JSON: "
+    '{"pushy_terms": ["..."], "sensitive_terms": ["..."]}\n\nDrafts the gate missed:\n')
+
+
+def _haiku_llm():
+    """The cheapest model, explicitly - never the Opus default. One capped call."""
+    import os
+    from dotenv import load_dotenv
+    from langchain_anthropic import ChatAnthropic
+    # load the repo-root .env by explicit path (robust regardless of caller / cwd)
+    env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), ".env")
+    load_dotenv(env_path)
+    model = os.environ.get("IMPROVE_MODEL", "claude-haiku-4-5-20251001")
+    return ChatAnthropic(model=model, max_tokens=400, temperature=0)
+
+
+def propose_with_llm(train_cases, negatives=None, llm=None) -> Policy:
+    """LLM proposer: an actual model READS the failures and reasons out risk phrases (multi-word,
+    less crude than mined unigrams). Same interface + same eval gate as the deterministic proposer.
+
+    Pass `llm` (any object with .invoke(prompt).content) to test with a mock - no key needed."""
+    import json
+    import re
+
+    negatives = build_cases() if negatives is None else negatives
+    neg_text = "\n".join(_text(c) for c in negatives if c.ground_truth == "auto")
+    llm = llm or _haiku_llm()
+
+    prompt = _LLM_PROMPT + "\n".join(f"- {c.action.body}" for c in train_cases)
+    resp = llm.invoke(prompt)
+    content = getattr(resp, "content", resp)
+    if isinstance(content, list):
+        content = " ".join(b.get("text", "") for b in content if isinstance(b, dict))
+    m = re.search(r"\{.*\}", str(content), re.DOTALL)
+    data = json.loads(m.group(0)) if m else {"pushy_terms": [], "sensitive_terms": []}
+
+    def _clean(terms):
+        out = []
+        for t in terms or []:
+            t = str(t).strip().lower()
+            if t and t not in neg_text and not _in_baseline(t):   # don't over-flag clean drafts / dup baseline
+                out.append(t)
+        return tuple(dict.fromkeys(out))    # de-dupe, keep order
+
+    return Policy(extra_pushy_terms=_clean(data.get("pushy_terms")),
+                  extra_sensitive_terms=_clean(data.get("sensitive_terms")),
+                  note="LLM-proposed (Haiku): phrases reasoned from the missed drafts")
+
+
 def prove(policy: Policy, train=None, val=None, cross=None) -> dict:
     """Run the gate on train / same-family val / cross-family, plus the labeled invariant."""
     train = build_train_cases() if train is None else train
@@ -142,10 +197,12 @@ def prove(policy: Policy, train=None, val=None, cross=None) -> dict:
     return report
 
 
-def run_improvement() -> dict:
+def run_improvement(use_llm: bool = False, llm=None) -> dict:
+    """Analyze -> propose -> prove -> decide. Deterministic (free) by default; use_llm=True runs the
+    LLM proposer (needs a key; costs cents). Both go through the identical eval gate."""
     train = build_train_cases()
     analysis = analyze(train)
-    proposal = propose_from_data(train)
+    proposal = propose_with_llm(train, llm=llm) if use_llm else propose_from_data(train)
     report = prove(proposal, train=train)
     return {"analysis": analysis, "proposal": proposal, "report": report}
 

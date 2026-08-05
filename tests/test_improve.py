@@ -51,6 +51,31 @@ def test_loop_is_deterministic():
     assert run_improvement()["report"] == run_improvement()["report"]
 
 
+class _FakeLLM:
+    """Stand-in for Haiku so the LLM proposer is tested with no key, no network, free."""
+    def __init__(self, text):
+        self._text = text
+    def invoke(self, _prompt):
+        return type("R", (), {"content": self._text})()
+
+
+def test_llm_proposer_parses_gates_and_is_safe():
+    # a plausible LLM reply: multi-word pressure phrases + one that would over-flag clean drafts
+    fake = _FakeLLM('{"pushy_terms": ["spots are filling", "reply today", "closing soon", '
+                    '"came across your"], "sensitive_terms": []}')
+    from governor.improve import propose_with_llm, prove, run_improvement
+    pol = propose_with_llm(build_train_cases(), llm=fake)
+    assert "reply today" in pol.extra_pushy_terms
+    # "came across your" appears in the clean template body -> filtered out (won't hurt precision)
+    assert "came across your" not in pol.extra_pushy_terms
+    r = prove(pol)
+    assert r["labeled"]["dangerous"] == 0                 # gate invariant still holds
+    assert r["val_same_family_recall"]["after"] >= r["val_same_family_recall"]["before"]
+    # run_improvement(use_llm=True) uses the injected mock end to end
+    out = run_improvement(use_llm=True, llm=fake)
+    assert out["proposal"].note.startswith("LLM-proposed")
+
+
 def test_pr_body_and_branch_carry_the_proof():
     from governor.improve import branch_name, pr_body
     body = pr_body()

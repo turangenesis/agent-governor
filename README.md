@@ -142,6 +142,11 @@ same-family gain (recall 0.0 -> 0.67 on unseen phrasings) and **no transfer** to
 never shown - because real, measured self-improvement is partial and family-specific, not a magic
 100%. An overfit proposal (memorizing exact phrases) is rejected by the validation gate.
 
+Two proposers sit behind the *same* gate: a free deterministic term-miner (default) and an opt-in
+**LLM proposer** (`governor improve --llm`; Haiku, ~$0.001/run) that reasons multi-word phrases
+from the failures (e.g. `"spots are filling"`, `"didn't want you to miss"`) instead of crude
+tokens. Either way, the eval gate - not the proposer - decides what may merge.
+
 ```bash
 ./.venv/bin/governor improve   # analyze -> propose -> prove -> MERGE / REJECT  (offline, no key)
 ```

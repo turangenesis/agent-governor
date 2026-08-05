@@ -41,6 +41,9 @@ The honest result is deliberately partial: same-family recall **0.0 -> 0.67** on
 and **no transfer** to a family the proposer was never shown - because real self-improvement is
 partial and family-specific, not a magic 100%. An overfit (exact-phrase) proposal is rejected. The
 Governor stays deterministic - a policy may only widen matched families, never scoring or labels.
+Two proposers plug into the same gate: a free deterministic term-miner (default) and an opt-in
+LLM proposer (`governor improve --llm`, Haiku, ~$0.001/run) that reasons multi-word phrases from
+the failures. The eval gate, not the proposer, decides what may merge.
 
 ## Why evaluation is the point of this project
 

@@ -59,7 +59,7 @@ def _cmd_evaluate(args: argparse.Namespace) -> int:
 def _cmd_improve(args: argparse.Namespace) -> int:
     from .improve import pr_body, run_improvement
 
-    out = run_improvement()
+    out = run_improvement(use_llm=getattr(args, "llm", False))
 
     if getattr(args, "pr_body", False):          # emit a PR description (pipe to gh pr create)
         print(pr_body(out))
@@ -205,6 +205,9 @@ def build_parser() -> argparse.ArgumentParser:
                        help="write the proposed policy JSON to PATH (the change artifact)")
     p_imp.add_argument("--adopt", action="store_true",
                        help="ADOPT the proposal (write it as the active policy) if it passes the gate")
+    p_imp.add_argument("--llm", action="store_true",
+                       help="use the LLM proposer (Haiku; needs ANTHROPIC_API_KEY in .env; ~cents) "
+                            "instead of the free deterministic one")
     p_imp.set_defaults(func=_cmd_improve)
 
     p_run = sub.add_parser("run", help="run the sourcing agents through the Governor")
