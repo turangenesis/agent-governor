@@ -1,17 +1,31 @@
 # 🛡️ The Governor
 
-**The oversight & eval layer for autonomous agents - demonstrated on recruiting.**
+**A governance & evaluation layer for autonomous agents: decide which actions can run without a human - and prove it.**
 
 ![CI](https://github.com/turangenesis/agent-governor/actions/workflows/ci.yml/badge.svg)
 &nbsp;![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)
 &nbsp;![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)
 
+## The problem
+
+Agents are getting real hands - they can spend money, delete data, deploy code, and message
+people. The question isn't *can* we stop them; it's **which of their actions can fire without a
+human, and how do you prove that policy is right.**
+
+Picture it: an AI support agent about to auto-approve a fraudulent **$800 refund**; a recruiting
+agent about to send a manipulative pitch to an engineer at a competitor. No one is watching
+either. **The Governor** catches both - it scores each proposed action, decides
+**auto-send / escalate / hold**, *measures* that the judgment is right, and improves its own
+policy under evaluation. **One reusable core, shown on two domains** (a support agent and a
+recruiting agent).
+
 ### ▶ Live demo: **https://turangenesis.github.io/agent-governor/**
 
-A recorded run of the five agents plays instantly in your browser - fully offline, no key, no
-network. Toggle **Flow** vs **🔁 Loop** to watch the agents either follow a fixed pipeline or
-**decide their own next step**. The full system (real GitHub sourcing + optional live Claude
-drafting) runs from the source in this repo.
+**What you'll watch (~60s):** five recruiting agents search, draft, and *propose* outreach; one
+writes a manipulative pitch; the Governor routes the risky ones to a human instead of sending, and
+the scoreboard shows **0 dangerous auto-sends** with every real risk caught. It's a recorded run,
+fully offline - no key, no network. Toggle **Flow** vs **🔁 Loop** to watch the agents follow a
+fixed pipeline or **decide their own next step**.
 
 ## Quickstart
 
