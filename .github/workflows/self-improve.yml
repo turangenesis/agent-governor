@@ -33,9 +33,10 @@ jobs:
           git config user.name "governor-self-improve[bot]"
           git config user.email "governor-self-improve@users.noreply.github.com"
           git checkout -b "$BRANCH"
-          governor improve --emit-policy proposed_policy.json
-          git add proposed_policy.json
-          git commit -m "self-improve: eval-gated policy proposal"
+          # write the ADOPTED policy file - merging this PR makes the Governor use it
+          governor improve --emit-policy src/governor/active_policy.json
+          git add src/governor/active_policy.json
+          git commit -m "self-improve: eval-gated policy proposal (adopt on merge)"
           git push -u origin "$BRANCH"
           governor improve --pr-body > /tmp/pr_body.md
           gh pr create --title "Self-improve: eval-gated policy proposal" \

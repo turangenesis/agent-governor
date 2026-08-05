@@ -106,13 +106,15 @@ def recruiting_thresholds() -> "core.Thresholds":
 
 
 def govern(action: ProposedAction, brief: HiringBrief, human_queue_depth: int = 0,
-           policy: Policy = BASELINE) -> GovernorDecision:
+           policy: Policy = None) -> GovernorDecision:
     """The recruiting judgment call - now a thin consumer of the reusable core (core.decide).
 
-    GOVERNOR mode only (FIFO bypasses this and escalates everything). `policy` defaults to BASELINE
-    (unchanged behavior); the self-improvement loop passes a widened policy to evaluate a proposed
-    change. This computes the recruiting-specific signals, then hands them to the domain-free core."""
-    signals = score_signals(action, brief, policy)
+    GOVERNOR mode only (FIFO bypasses this and escalates everything). When `policy` is None the
+    Governor uses the ADOPTED policy (`load_active_policy()`, = BASELINE if none has been merged),
+    so a merged self-improvement PR actually changes behavior. The eval/improve code passes an
+    explicit policy to compare candidates. Computes recruiting signals, hands them to the core."""
+    from .policy import load_active_policy
+    signals = score_signals(action, brief, policy if policy is not None else load_active_policy())
     return core.decide(signals, human_queue_depth, recruiting_thresholds())
 
 

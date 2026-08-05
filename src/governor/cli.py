@@ -70,6 +70,15 @@ def _cmd_improve(args: argparse.Namespace) -> int:
             json.dump(out["proposal"].to_dict(), f, indent=2)
         print(f"wrote proposed policy -> {args.emit_policy}")
         return 0
+    if getattr(args, "adopt", False):            # ADOPT it (only if it passed the eval gate)
+        from .policy import ACTIVE_POLICY_PATH, save_active_policy
+        if out["report"]["decision"] != "MERGE":
+            print("proposal did NOT pass the eval gate (REJECT) - not adopting.")
+            return 1
+        save_active_policy(out["proposal"])
+        print(f"adopted -> {ACTIVE_POLICY_PATH}\nthe Governor now uses the widened policy "
+              "(a previously-missed evasion will escalate). Remove that file to revert.")
+        return 0
 
     a, p, r = out["analysis"], out["proposal"], out["report"]
     print("=== Governor self-improvement loop (eval-gated policy change) ===\n")
@@ -194,6 +203,8 @@ def build_parser() -> argparse.ArgumentParser:
                        help="print a PR description carrying the eval proof (pipe to gh pr create)")
     p_imp.add_argument("--emit-policy", metavar="PATH",
                        help="write the proposed policy JSON to PATH (the change artifact)")
+    p_imp.add_argument("--adopt", action="store_true",
+                       help="ADOPT the proposal (write it as the active policy) if it passes the gate")
     p_imp.set_defaults(func=_cmd_improve)
 
     p_run = sub.add_parser("run", help="run the sourcing agents through the Governor")
