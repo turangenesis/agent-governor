@@ -1,0 +1,18 @@
+{
+  "extra_pushy_terms": [
+    "spots are filling",
+    "filling fast",
+    "closing soon",
+    "only talking to",
+    "few people",
+    "limited spots",
+    "reply today",
+    "only a few",
+    "didn't want you to miss"
+  ],
+  "extra_sensitive_terms": [
+    "hold a spot",
+    "i'll hold"
+  ],
+  "note": "LLM-proposed (Haiku): phrases reasoned from the missed drafts"
+}
