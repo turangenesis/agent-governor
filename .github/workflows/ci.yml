@@ -13,8 +13,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Install (editable, with the demo + test + eval extras)
-        run: pip install -e ".[demo,test,eval]"
+      - name: Install (editable, with the demo + test + eval + api extras)
+        run: pip install -e ".[demo,test,eval,api]"
       - name: Run the test suite (incl. the DeepEval-gated evals)
         env:
           DEEPEVAL_TELEMETRY_OPT_OUT: "YES"

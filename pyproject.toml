@@ -5,10 +5,18 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "agent-governor"
 version = "0.1.0"
-description = "The Governor - an oversight & eval layer for autonomous recruiting agents."
+description = "The Governor - a reusable oversight & eval layer for autonomous agents."
 readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "MIT" }
+authors = [{ name = "Emre Turan" }]
+keywords = ["ai-agents", "ai-safety", "evaluation", "oversight", "human-in-the-loop"]
+classifiers = [
+    "Programming Language :: Python :: 3.12",
+    "License :: OSI Approved :: MIT License",
+    "Intended Audience :: Developers",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
 # Core install is deliberately light so `pip install -e .` stays offline-friendly:
 # the deterministic core (governor scoring, eval labels, CLI) needs no third-party
 # packages, and live discovery only needs requests. The heavy agent/UI stack lives
@@ -36,6 +44,17 @@ test = [
 eval = [
     "deepeval>=4.0",
 ]
+# Optional HTTP service (governor.api): consume the layer over HTTP, not just as a library.
+api = [
+    "fastapi>=0.110",
+    "uvicorn>=0.29",
+    "httpx>=0.27",
+]
+
+[project.urls]
+Homepage = "https://github.com/turangenesis/agent-governor"
+Repository = "https://github.com/turangenesis/agent-governor"
+Demo = "https://turangenesis.github.io/agent-governor/"
 
 [project.scripts]
 governor = "governor.cli:main"

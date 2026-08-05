@@ -82,6 +82,10 @@ scoreboard = evaluate_policy(my_cases, my_risk_fn)   # measured recall / precisi
 `examples/support_desk.py` is a second, unrelated domain (a support agent auto-issuing refunds)
 running on the exact same core - proof the layer is not recruiting-specific.
 
+Or consume it **over HTTP** (any language) - `pip install -e ".[api]"` then `uvicorn governor.api:app`
+and `POST /decide` with your action's risk signals. So it's usable three ways: a **CLI**
+(`governor`), a **library** (`governor.core`), or a **service** (`governor.api`).
+
 ## Stack
 
 - **Python 3.12** - deterministic policy core (no LLM); `langgraph` + `langchain` power the agent tool-use loop.
