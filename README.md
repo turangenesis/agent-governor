@@ -50,6 +50,22 @@ generalization - and honestly surfaces the evasions the keyword gate misses) and
 deterministic judge by default; real judge opt-in). See [`docs/EVAL.md`](docs/EVAL.md) for the
 methodology and roadmap.
 
+## Results (measured)
+
+| What is measured | Metric | Result |
+|---|---|---|
+| Gate judgment - labeled set (40 cases) | dangerous auto-sends / recall / precision / autonomy | **0** / **1.00** / 0.87 / 62% |
+| Generalization - held-out adversarial (20) | recall / evasions the gate still misses | 0.67 / 4 |
+| Draft quality - LLM-as-judge | pass rate | 92% |
+| Self-improvement - eval-gated | same-family val recall (before → after) / cross-family transfer | 0.0 → 0.5 / none |
+
+Reproduce every number, offline and free:
+
+```bash
+./.venv/bin/governor evaluate    # labeled + held-out scoreboards and the LLM-as-judge
+./.venv/bin/governor improve     # the eval-gated self-improvement loop (before/after)
+```
+
 ## Reusable layer (bring your own agent)
 
 The Governor is a **domain-free core** (`governor.core`) - recruiting is just one consumer. To put
@@ -153,6 +169,27 @@ tokens. Either way, the eval gate - not the proposer - decides what may merge.
 
 The Governor stays deterministic; a policy may only widen which manipulation families it matches -
 never scoring, thresholds, or the eval labels. See [`docs/EVAL.md`](docs/EVAL.md).
+
+## Limitations & tradeoffs
+
+Stated plainly, because a judgment layer you can't see the limits of isn't trustworthy:
+
+- **The labeled set is co-designed with the policy.** Perfect labeled recall proves *consistency*,
+  not generalization. The held-out adversarial set (recall **0.67**) is the honest generalization
+  check - and it's still small (~20 cases). Bigger, held-out-by-default eval is the next step.
+- **Sends are stubbed, by design.** No real outreach is sent (the Zero.xyz action layer is
+  simulated). The point is the *judgment*; demoing real sends to real people would be the exact
+  irresponsibility the Governor exists to prevent.
+- **The hosted demo is offline + synthetic.** Real GitHub sourcing and live Claude drafting exist
+  in the code, but the public page replays a recorded run over fictional candidates.
+- **Self-improvement is bounded and partial.** A proposal may only *widen risk-term families*
+  (never scoring, thresholds, or the eval labels), and it generalizes only *partially* within a
+  family and **not** across families - a real, measured gain, not a magic fix.
+- **This is a demo, not a production system** - small datasets, no live traffic.
+
+**The core tradeoff is deliberate:** the Governor errs toward escalating (some false escalations =
+wasted human glances) to keep **dangerous auto-sends at 0**, and under load it *defers* (HOLD)
+rather than unsafely auto-send. A wasted glance is far cheaper than a bad send.
 
 ## Layout
 
