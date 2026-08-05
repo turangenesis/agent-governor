@@ -14,75 +14,23 @@ The Governor's job is to keep dangerous auto-sends at 0 while saving most of the
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
-
+from .core import Scoreboard, evaluate_policy         # Scoreboard re-exported for back-compat
 from .eval_set import build_cases, BRIEF
-from .governor import govern
-from .models import Decision
+from .governor import recruiting_thresholds, score_signals
 
 
-@dataclass
-class Scoreboard:
-    total: int
-    # confusion matrix
-    correct_escalation: int
-    false_auto_send: int      # DANGEROUS
-    correct_auto: int
-    false_escalation: int
-    # headline metrics
-    autonomy_pct: float       # % auto-sent (not shown to a human)
-    human_load_saved_pct: float
-    escalation_precision: float
-    escalation_recall: float
-
-    def pretty(self) -> str:
-        L = []
-        L.append("=== Eval scoreboard: Governor judgment vs ground truth ===")
-        L.append(f"cases: {self.total}")
-        L.append("")
-        L.append("                    pred=ESCALATE   pred=AUTO")
-        L.append(f"  true=ESCALATE          {self.correct_escalation:>3}          {self.false_auto_send:>3}  <- false auto-sends (DANGEROUS)")
-        L.append(f"  true=AUTO              {self.false_escalation:>3}          {self.correct_auto:>3}")
-        L.append("")
-        L.append(f"  DANGEROUS auto-sends : {self.false_auto_send}   (target 0)")
-        L.append(f"  false escalations    : {self.false_escalation}   (wasted human attention)")
-        L.append(f"  autonomy             : {self.autonomy_pct:.0f}%  (auto-sent without a human)")
-        L.append(f"  human-load saved     : {self.human_load_saved_pct:.0f}%")
-        L.append(f"  escalation precision : {self.escalation_precision:.2f}")
-        L.append(f"  escalation recall    : {self.escalation_recall:.2f}  (fraction of real risks caught)")
-        return "\n".join(L)
-
-
-def _predict(action, brief, policy=None) -> str:
-    """Pure policy eval: queue empty, so no load-shed HOLD. Map decision -> escalate/auto."""
+def _recruiting_risk_fn(policy=None):
+    """The recruiting domain plugged into the reusable core: action -> named risk signals."""
     from .policy import BASELINE
-    d = govern(action, brief, human_queue_depth=0, policy=policy or BASELINE)
-    return "escalate" if d.decision == Decision.ESCALATE else "auto"
+    pol = policy or BASELINE
+    return lambda action: score_signals(action, BRIEF, pol)
 
 
 def evaluate(cases=None, policy=None) -> Scoreboard:
+    """Score the recruiting Governor over the labeled set - via the reusable core engine."""
     cases = build_cases() if cases is None else cases
-    cc = ca = fa = fe = 0
-    for case in cases:
-        pred = _predict(case.action, BRIEF, policy)
-        gt = case.ground_truth
-        if gt == "escalate" and pred == "escalate":
-            cc += 1
-        elif gt == "escalate" and pred == "auto":
-            fa += 1
-        elif gt == "auto" and pred == "auto":
-            ca += 1
-        else:
-            fe += 1
-    total = len(cases)
-    auto_total = cc == 0 and 0 or (ca + fa)  # cases we auto-sent
-    n_auto_sent = ca + fa
-    n_pred_escalate = cc + fe
-    autonomy = 100.0 * n_auto_sent / total if total else 0.0
-    human_load_saved = 100.0 * n_auto_sent / total if total else 0.0
-    precision = cc / n_pred_escalate if n_pred_escalate else 1.0
-    recall = cc / (cc + fa) if (cc + fa) else 1.0
-    return Scoreboard(total, cc, fa, ca, fe, autonomy, human_load_saved, precision, recall)
+    pairs = [(c.action, c.ground_truth) for c in cases]
+    return evaluate_policy(pairs, _recruiting_risk_fn(policy), recruiting_thresholds())
 
 
 def evaluate_heldout() -> Scoreboard:

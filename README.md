@@ -1,6 +1,6 @@
 # 🛡️ The Governor
 
-**The oversight & eval layer for autonomous recruiting agents.**
+**The oversight & eval layer for autonomous agents - demonstrated on recruiting.**
 
 ![CI](https://github.com/turangenesis/agent-governor/actions/workflows/ci.yml/badge.svg)
 &nbsp;![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)
@@ -49,6 +49,22 @@ generalization - and honestly surfaces the evasions the keyword gate misses) and
 **LLM-as-judge** pass that grades the *drafts* themselves for tone and manipulation (free
 deterministic judge by default; real judge opt-in). See [`docs/EVAL.md`](docs/EVAL.md) for the
 methodology and roadmap.
+
+## Reusable layer (bring your own agent)
+
+The Governor is a **domain-free core** (`governor.core`) - recruiting is just one consumer. To put
+it on *your* agent, supply an action, a risk function, and labels:
+
+```python
+from governor.core import Governor, evaluate_policy
+
+gov = Governor(risk_fn=my_risk_fn)            # risk_fn: action -> {signal_name: weight}
+decision = gov.decide(my_action)              # AUTO_SEND / ESCALATE / HOLD (with load-shedding)
+scoreboard = evaluate_policy(my_cases, my_risk_fn)   # measured recall / precision / 0-dangerous
+```
+
+`examples/support_desk.py` is a second, unrelated domain (a support agent auto-issuing refunds)
+running on the exact same core - proof the layer is not recruiting-specific.
 
 ## Stack
 

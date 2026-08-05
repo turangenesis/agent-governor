@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import re
 
+from . import core
 from .models import Candidate, HiringBrief, ProposedAction, Decision, GovernorDecision
 from .policy import BASELINE, Policy
 
@@ -98,32 +99,21 @@ def risk_of(action: ProposedAction, brief: HiringBrief,
     return score, signals
 
 
+def recruiting_thresholds() -> "core.Thresholds":
+    """This domain's thresholds, expressed in the reusable core's config."""
+    return core.Thresholds(escalate=ESCALATE_THRESHOLD, auto=AUTO_THRESHOLD,
+                           max_human_queue=MAX_HUMAN_QUEUE, hard_escalate=HARD_ESCALATE)
+
+
 def govern(action: ProposedAction, brief: HiringBrief, human_queue_depth: int = 0,
            policy: Policy = BASELINE) -> GovernorDecision:
-    """The judgment call. GOVERNOR mode only (FIFO bypasses this and escalates everything).
+    """The recruiting judgment call - now a thin consumer of the reusable core (core.decide).
 
-    `policy` defaults to BASELINE (unchanged behavior); the self-improvement loop passes a widened
-    policy to evaluate a proposed change before it may merge."""
-    score, signals = risk_of(action, brief, policy)
-    reasons = [f"{k} (+{v:.2f})" for k, v in sorted(signals.items(), key=lambda kv: -kv[1])]
-
-    # Hard escalate: a genuinely risky action is never load-shed away.
-    if score >= HARD_ESCALATE:
-        return GovernorDecision(Decision.ESCALATE, score, ["HARD-ESCALATE"] + reasons, signals)
-
-    if score <= AUTO_THRESHOLD:
-        return GovernorDecision(Decision.AUTO_SEND, score, reasons or ["clearly low risk"], signals)
-
-    if score >= ESCALATE_THRESHOLD:
-        # Needs a human — but if the human is saturated, park it instead of piling on.
-        if human_queue_depth > MAX_HUMAN_QUEUE:
-            return GovernorDecision(Decision.HOLD, score,
-                                    [f"load-shed: human queue {human_queue_depth} > {MAX_HUMAN_QUEUE}"] + reasons,
-                                    signals)
-        return GovernorDecision(Decision.ESCALATE, score, reasons, signals)
-
-    # Middle band (AUTO_THRESHOLD < score < ESCALATE_THRESHOLD): lean safe, auto-send.
-    return GovernorDecision(Decision.AUTO_SEND, score, ["mid-band, below escalate threshold"] + reasons, signals)
+    GOVERNOR mode only (FIFO bypasses this and escalates everything). `policy` defaults to BASELINE
+    (unchanged behavior); the self-improvement loop passes a widened policy to evaluate a proposed
+    change. This computes the recruiting-specific signals, then hands them to the domain-free core."""
+    signals = score_signals(action, brief, policy)
+    return core.decide(signals, human_queue_depth, recruiting_thresholds())
 
 
 if __name__ == "__main__":
