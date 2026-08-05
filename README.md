@@ -73,7 +73,7 @@ methodology and roadmap.
 | Gate judgment - labeled set (40 cases) | dangerous auto-sends / recall / precision / autonomy | **0** / **1.00** / 0.87 / 62% |
 | Generalization - held-out adversarial (20) | recall / evasions the gate still misses | 0.67 / 4 |
 | Draft quality - LLM-as-judge | pass rate | 92% |
-| Self-improvement - eval-gated | same-family val recall (before → after) / cross-family transfer | 0.0 → 0.5 / none |
+| Self-improvement - eval-gated | same-family val recall (before → after) / cross-family transfer | 0.0 → 0.67 / none |
 
 Reproduce every number, offline and free:
 
@@ -181,7 +181,8 @@ never shown - because real, measured self-improvement is partial and family-spec
 Two proposers sit behind the *same* gate: a free deterministic term-miner (default) and an opt-in
 **LLM proposer** (`governor improve --llm`; Haiku, ~$0.001/run) that reasons multi-word phrases
 from the failures (e.g. `"spots are filling"`, `"didn't want you to miss"`) instead of crude
-tokens. Either way, the eval gate - not the proposer - decides what may merge.
+tokens - a comparable partial gain (~0.5 on the same unseen split). Either way, the eval gate -
+not the proposer - decides what may merge.
 
 ```bash
 ./.venv/bin/governor improve   # analyze -> propose -> prove -> MERGE / REJECT  (offline, no key)
